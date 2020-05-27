@@ -1,6 +1,9 @@
 # CommandLineFPS
 A First Person Shooter at the command line? Yup...
+This was originally designed for MS Windows, then ported to ncurses for Linux by BloodSharp.
 
-Please see the source file on how to configure your command line before running.
+## Compile instruction
+- g++ CommandLineFPS.cpp -lncurses -o CommandLineFPS
 
-This is designed for MS Windows
+#### Image sample on elementary OS
+![CommandLineFPS](https://i.imgur.com/TvX6meC.png)
