@@ -37,11 +37,6 @@
 
 	IMPORTANT!!!!
 	~~~~~~~~~~~~~
-	READ ME BEFORE RUNNING!!! This program expects the console dimensions to be set to 
-	120 Columns by 40 Rows. I recommend a small font "Consolas" at size 16. You can do this
-	by running the program, and right clicking on the console title bar, and specifying 
-	the properties. You can also choose to default to them in the future.
-	
 	Controls: A = Turn Left, D = Turn Right, W = Walk Forwards, S = Walk Backwards
 
 	Future Modifications
@@ -53,27 +48,30 @@
 	3) Add bullets!
 	4) Add bad guys!
 
-	Author
+	Authors
 	~~~~~~
 	Twitter: @javidx9
 	Blog: www.onelonecoder.com
+
+	Agustín Alejandro dos Santos
+	Github: https://github.com/BloodSharp/CommandLineFPS
 
 	Video:
 	~~~~~~	
 	https://youtu.be/xW8skO7MFYw
 
-	Last Updated: 27/02/2017
+	Last Updated: 27/05/2020
 */
 
+#include <ncurses.h>
+#include <cmath>
 #include <iostream>
 #include <vector>
 #include <utility>
 #include <algorithm>
-#include <chrono>
 using namespace std;
 
 #include <stdio.h>
-#include <Windows.h>
 
 int nScreenWidth = 120;			// Console Screen Size X (columns)
 int nScreenHeight = 40;			// Console Screen Size Y (rows)
@@ -83,17 +81,23 @@ int nMapHeight = 16;
 float fPlayerX = 14.7f;			// Player Start Position
 float fPlayerY = 5.09f;
 float fPlayerA = 0.0f;			// Player Start Rotation
-float fFOV = 3.14159f / 4.0f;	// Field of View
+float fFOV = M_PI_4;        	// Field of View
 float fDepth = 16.0f;			// Maximum rendering distance
-float fSpeed = 5.0f;			// Walking Speed
+float fSpeed = 0.1f;			// Walking Speed
 
 int main()
 {
-	// Create Screen Buffer
-	wchar_t *screen = new wchar_t[nScreenWidth*nScreenHeight];
-	HANDLE hConsole = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
-	SetConsoleActiveScreenBuffer(hConsole);
-	DWORD dwBytesWritten = 0;
+    char keyPressed;
+
+    initscr();
+    noecho();
+    curs_set(0);
+
+    getmaxyx(stdscr, nScreenHeight, nScreenWidth);
+
+    // Create Screen Buffer
+	wchar_t *screen=new wchar_t[nScreenWidth*nScreenHeight];
+	
 
 	// Create Map of world space # = wall block, . = space
 	wstring map;
@@ -114,52 +118,8 @@ int main()
 	map += L"#..............#";
 	map += L"################";
 
-	auto tp1 = chrono::system_clock::now();
-	auto tp2 = chrono::system_clock::now();
-	
-	while (1)
+	do
 	{
-		// We'll need time differential per frame to calculate modification
-		// to movement speeds, to ensure consistant movement, as ray-tracing
-		// is non-deterministic
-		tp2 = chrono::system_clock::now();
-		chrono::duration<float> elapsedTime = tp2 - tp1;
-		tp1 = tp2;
-		float fElapsedTime = elapsedTime.count();
-
-
-		// Handle CCW Rotation
-		if (GetAsyncKeyState((unsigned short)'A') & 0x8000)
-			fPlayerA -= (fSpeed * 0.75f) * fElapsedTime;
-
-		// Handle CW Rotation
-		if (GetAsyncKeyState((unsigned short)'D') & 0x8000)
-			fPlayerA += (fSpeed * 0.75f) * fElapsedTime;
-		
-		// Handle Forwards movement & collision
-		if (GetAsyncKeyState((unsigned short)'W') & 0x8000)
-		{
-			fPlayerX += sinf(fPlayerA) * fSpeed * fElapsedTime;;
-			fPlayerY += cosf(fPlayerA) * fSpeed * fElapsedTime;;
-			if (map.c_str()[(int)fPlayerX * nMapWidth + (int)fPlayerY] == '#')
-			{
-				fPlayerX -= sinf(fPlayerA) * fSpeed * fElapsedTime;;
-				fPlayerY -= cosf(fPlayerA) * fSpeed * fElapsedTime;;
-			}			
-		}
-
-		// Handle backwards movement & collision
-		if (GetAsyncKeyState((unsigned short)'S') & 0x8000)
-		{
-			fPlayerX -= sinf(fPlayerA) * fSpeed * fElapsedTime;;
-			fPlayerY -= cosf(fPlayerA) * fSpeed * fElapsedTime;;
-			if (map.c_str()[(int)fPlayerX * nMapWidth + (int)fPlayerY] == '#')
-			{
-				fPlayerX += sinf(fPlayerA) * fSpeed * fElapsedTime;;
-				fPlayerY += cosf(fPlayerA) * fSpeed * fElapsedTime;;
-			}
-		}
-
 		for (int x = 0; x < nScreenWidth; x++)
 		{
 			// For each column, calculate the projected ray angle into world space
@@ -263,9 +223,6 @@ int main()
 			}
 		}
 
-		// Display Stats
-		swprintf_s(screen, 40, L"X=%3.2f, Y=%3.2f, A=%3.2f FPS=%3.2f ", fPlayerX, fPlayerY, fPlayerA, 1.0f/fElapsedTime);
-
 		// Display Map
 		for (int nx = 0; nx < nMapWidth; nx++)
 			for (int ny = 0; ny < nMapWidth; ny++)
@@ -274,11 +231,57 @@ int main()
 			}
 		screen[((int)fPlayerX+1) * nScreenWidth + (int)fPlayerY] = 'P';
 
-		// Display Frame
-		screen[nScreenWidth * nScreenHeight - 1] = '\0';
-		WriteConsoleOutputCharacter(hConsole, screen, nScreenWidth * nScreenHeight, { 0,0 }, &dwBytesWritten);
-	}
+        // Display Frame
+        for(int x=0;x<nScreenWidth;x++)
+            for(int y=0;y<nScreenHeight;y++)
+            {
+                move(y,x);
+                printw("%c",screen[y*nScreenWidth+x]);
+            }
 
+		// Display Stats
+		move(0,0);
+        printw("X=%3.2f, Y=%3.2f, A=%3.2f ", fPlayerX, fPlayerY, fPlayerA);
+
+        keyPressed=getch();
+
+        // Handle CCW Rotation
+        if(keyPressed=='a')
+            fPlayerA-=0.1f;
+        
+        // Handle CW Rotation
+        else if(keyPressed=='d')
+            fPlayerA+=0.1f;
+        
+        // Handle Forwards movement & collision
+        else if(keyPressed=='w')
+        {
+            fPlayerX += sinf(fPlayerA)*fSpeed;
+            fPlayerY += cosf(fPlayerA)*fSpeed;
+		    if (map.c_str()[(int)fPlayerX * nMapWidth + (int)fPlayerY] == '#')
+			{
+				fPlayerX -= sinf(fPlayerA) * fSpeed;
+				fPlayerY -= cosf(fPlayerA) * fSpeed;
+			}			
+        }
+
+		// Handle backwards movement & collision
+		else if (keyPressed=='s')
+		{
+			fPlayerX -= sinf(fPlayerA) * fSpeed;
+			fPlayerY -= cosf(fPlayerA) * fSpeed;
+			if (map.c_str()[(int)fPlayerX * nMapWidth + (int)fPlayerY] == '#')
+			{
+				fPlayerX += sinf(fPlayerA) * fSpeed;
+				fPlayerY += cosf(fPlayerA) * fSpeed;
+			}
+		}
+
+    }while(keyPressed!='q'&&keyPressed!='Q');
+
+    delete[]screen;
+
+    endwin();
 	return 0;
 }
 
