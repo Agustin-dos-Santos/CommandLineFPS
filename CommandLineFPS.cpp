@@ -54,13 +54,13 @@
 	Blog: www.onelonecoder.com
 
 	Agustín Alejandro dos Santos
-	Github: https://github.com/BloodSharp/CommandLineFPS
+	Github: https://github.com/Agustin-dos-Santos/CommandLineFPS
 
 	Video:
 	~~~~~~	
 	https://youtu.be/xW8skO7MFYw
 
-	Last Updated: 27/05/2020
+	Last Updated: 12/02/2021
 */
 
 #include <ncurses.h>
@@ -270,7 +270,7 @@ int main()
                 //move(y,x);
                 //printw("%c",screen[y*nScreenWidth+x]);
 				attron(COLOR_PAIR(screen_colors[y*nScreenWidth+x]));
-                move(y,x);
+				move(y,x);
                 printw("%c",screen[y*nScreenWidth+x]);
 				attroff(COLOR_PAIR(screen_colors[y*nScreenWidth+x]));
             }
