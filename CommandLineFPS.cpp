@@ -85,11 +85,37 @@ float fFOV = M_PI_4;        	// Field of View
 float fDepth = 16.0f;			// Maximum rendering distance
 float fSpeed = 0.1f;			// Walking Speed
 
+#define GRASS_PAIR 1
+#define WALL_PAIR 2
+#define CEILING_PAIR 3
+#define PLAYER_PAIR 4
+#define MAP_PAIR 5
+#define EMPTY_PAIR MAP_PAIR
+
 int main()
 {
     char keyPressed;
 
     initscr();
+
+	/* initialize colors */
+
+    if (has_colors() == FALSE) {
+        endwin();
+        printf("Your terminal does not support color\n");
+        return 1;
+    }
+
+    start_color();
+    init_pair(GRASS_PAIR, COLOR_BLACK, COLOR_GREEN);
+	init_pair(WALL_PAIR, COLOR_WHITE, COLOR_RED);
+    init_pair(CEILING_PAIR, COLOR_WHITE, COLOR_BLUE);
+    init_pair(PLAYER_PAIR, COLOR_WHITE, COLOR_MAGENTA);
+    init_pair(MAP_PAIR, COLOR_YELLOW, COLOR_BLACK);
+
+    clear();
+
+
     noecho();
     curs_set(0);
 
@@ -97,6 +123,7 @@ int main()
 
     // Create Screen Buffer
 	wchar_t *screen=new wchar_t[nScreenWidth*nScreenHeight];
+	int *screen_colors=new int[nScreenWidth*nScreenHeight];
 	
 
 	// Create Map of world space # = wall block, . = space
@@ -194,21 +221,23 @@ int main()
 
 			// Shader walls based on distance
 			short nShade = ' ';
-			if (fDistanceToWall <= fDepth / 4.0f)			nShade = 0x2588;	// Very close	
-			else if (fDistanceToWall < fDepth / 3.0f)		nShade = 0x2593;
-			else if (fDistanceToWall < fDepth / 2.0f)		nShade = 0x2592;
-			else if (fDistanceToWall < fDepth)				nShade = 0x2591;
+			if (fDistanceToWall <= fDepth / 4.0f)			nShade = '#';	// Very close	
+			else if (fDistanceToWall < fDepth / 3.0f)		nShade = 'x';
+			else if (fDistanceToWall < fDepth / 2.0f)		nShade = '-';
+			else if (fDistanceToWall < fDepth)				nShade = '.';
 			else											nShade = ' ';		// Too far away
 
-			if (bBoundary)		nShade = ' '; // Black it out
+			if (bBoundary)		nShade = '|'; // Black it out
 			
 			for (int y = 0; y < nScreenHeight; y++)
 			{
 				// Each Row
 				if(y <= nCeiling)
-					screen[y*nScreenWidth + x] = ' ';
+					screen[y*nScreenWidth + x] = ' ',
+					screen_colors[y*nScreenWidth + x] = CEILING_PAIR;
 				else if(y > nCeiling && y <= nFloor)
-					screen[y*nScreenWidth + x] = nShade;
+					screen[y*nScreenWidth + x] = nShade,
+					screen_colors[y*nScreenWidth + x] = WALL_PAIR;
 				else // Floor
 				{				
 					// Shade floor based on distance
@@ -219,6 +248,7 @@ int main()
 					else if (b < 0.9)	nShade = '-';
 					else				nShade = ' ';
 					screen[y*nScreenWidth + x] = nShade;
+					screen_colors[y*nScreenWidth + x] = GRASS_PAIR;
 				}
 			}
 		}
@@ -228,15 +258,21 @@ int main()
 			for (int ny = 0; ny < nMapWidth; ny++)
 			{
 				screen[(ny+1)*nScreenWidth + nx] = map[ny * nMapWidth + nx];
+				screen_colors[(ny+1)*nScreenWidth + nx] = MAP_PAIR;
 			}
 		screen[((int)fPlayerX+1) * nScreenWidth + (int)fPlayerY] = 'P';
+		screen_colors[((int)fPlayerX+1) * nScreenWidth + (int)fPlayerY] = PLAYER_PAIR;
 
         // Display Frame
         for(int x=0;x<nScreenWidth;x++)
             for(int y=0;y<nScreenHeight;y++)
             {
+                //move(y,x);
+                //printw("%c",screen[y*nScreenWidth+x]);
+				attron(COLOR_PAIR(screen_colors[y*nScreenWidth+x]));
                 move(y,x);
                 printw("%c",screen[y*nScreenWidth+x]);
+				attroff(COLOR_PAIR(screen_colors[y*nScreenWidth+x]));
             }
 
 		// Display Stats
@@ -280,6 +316,7 @@ int main()
     }while(keyPressed!='q'&&keyPressed!='Q');
 
     delete[]screen;
+	delete[]screen_colors;
 
     endwin();
 	return 0;
